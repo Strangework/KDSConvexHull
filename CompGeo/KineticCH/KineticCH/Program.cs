@@ -29,6 +29,32 @@ namespace KineticCH
                 //remove each certificate from the priority queue.
             }
         }
+        //Split the vertex OF THE OUTPUT!
+        //Come up with method for handling mutliple verticies being created at the same point at the same time.
+        public Vertex SplitVertex(Vertex v, Line newl, double time)
+        {
+            if (v == null)
+                return null;
+            Vertex newVert = new Vertex(newl, v.b);
+            Edge newE = new Edge(v, newVert);
+            newVert.rightE = v.rightE;
+            v.rightE = newE;
+            newVert.leftE = newE;
+            newVert.contender = v.contender;
+            newVert.prev = v;
+            newVert.next = v.next;
+            v.RemoveCert(CertType.x);
+            v.x_ = CertificateMaker(v, time + .000000001, CertType.x)[0];
+            events.Enqueue(v.x_);
+            newVert.certs = CertificateMaker(newVert, time + .000000001);
+            newVert.parent = SplitVertex(v.parent, newl, time);
+            return newVert;//Returns the parent of the new vertex
+        }
+        public Vertex MergeVerticies(Edge e, double time)
+        {
+            e.leftV.RemoveCert(CertType.x);
+            return e.leftV;
+        }
         public void HandleEvents(double time)
         {
             Certificate curC;
@@ -133,9 +159,10 @@ namespace KineticCH
                                 events.Enqueue(ab.yri);
                                 ab.prev.yli = CertificateMaker(ab.prev, time, CertType.yli)[0];
                                 events.Enqueue(ab.prev.yli);
-                                if (ab.contender.EdgeIsBelow(ab, time - .00001))//Just before intersection
+                                if (ab.contender.EdgeIsBelow(ab, time - .0000001))//Just before intersection
                                 {
                                     //Add a!!
+                                    SplitVertex(ab.parent.next, ab.a, time);
                                 }
                                 else
                                 {
@@ -162,6 +189,7 @@ namespace KineticCH
                             ab.prev.yli = CertificateMaker(ab.prev, time, CertType.yli)[0];
                             events.Enqueue(ab.prev.yli);
                             //Add ab.contender to output!!
+                            SplitVertex(ab.parent, ab.contender.superLine, time);
                             break;
                         }
                     case CertType.slt:
