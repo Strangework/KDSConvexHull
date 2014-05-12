@@ -55,13 +55,61 @@ namespace KineticCH
             e.leftV.RemoveCert(CertType.x);
             return e.leftV;
         }
+        public Envelope FuseCH(Envelope first, Envelope second, double time)
+        {
+            return null;
+        }
+        public Envelope CreateCH(List<Line> input, double time)
+        {
+            return null;
+        }
+        private void HandleMassDegeneracy(Vertex v, double time)
+        {
+
+        }
         public void HandleEvents(double time)
         {
             Certificate curC;
+            int level = events.Peek().binaryTreeIndex;
+            List<Vertex> recheck = new List<Vertex>();
             while (time > events.Peek().timeViolated)
             {
                 bool vAddRm = true;
                 curC = events.Dequeue();
+                if (curC.binaryTreeIndex > level)
+                {
+                    while (recheck.Count != 0)
+                    {
+                        Vertex curV = recheck[recheck.Count-1];
+                        //Get leftmost one in chain to be fused for simplicity.
+                        while (curV.leftE.leftV.dying)
+                        {
+                            curV = curV.leftE.leftV;
+                        }
+                        Vertex leftOfLeft = curV.leftE.leftV;
+                        curV.splitting.Add(curV.leftE.superLine);
+                        Envelope envelopeAtPoint = CreateCH(curV.splitting, time);
+                        Vertex parent = curV.parent;
+                        while (curV.rightE.rightV.dying)
+                        {
+                            curV = curV.next;
+                            Envelope temp = CreateCH(curV.splitting, time);
+                            envelopeAtPoint = FuseCH(envelopeAtPoint, temp, time);
+                            if (parent == null)
+                            {
+                                parent = curV.parent;
+                            }
+                        }
+                        Vertex rightOfRight = curV.rightE.rightV;
+                        //At this point we have the two points at the ends of the chain of possibly dying verticies with possibly new edges sprouting from any of these points and the upper envelope made by
+                        //new potential points. 
+                        //Check if the contender edge of any of the verticies at the same point has a vertex that is directly above the vertex. If this vertex is dying, or being split,
+                    }
+                }
+                else if (curC.binaryTreeIndex < level)
+                {
+
+                }
                 curC.vertex.RemoveCert(curC.type, true);
                 //Depending on certificate type, do different things.
                 Vertex cd = null, ab = curC.vertex;
@@ -463,6 +511,8 @@ namespace KineticCH
     //VERTEX IS A CLASS. 
     public class Vertex 
     {
+        public bool dying;
+        public List<Line> splitting;
         public static Vertex infinite = new Vertex();
         public Certificate[] certs;
         //Line a is ALWAYS a real line.
@@ -485,6 +535,8 @@ namespace KineticCH
             prev = p;
             next = n;
             certs = new Certificate[8];
+            splitting = new List<Line>();
+            dying = false;
         }
         //This is meant to be empty
         private Vertex()
