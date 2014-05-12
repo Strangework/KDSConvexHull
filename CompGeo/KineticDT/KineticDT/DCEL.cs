@@ -47,6 +47,10 @@ namespace KineticDT
         {
 
         }
+        public bool CertType
+        {
+            get { return certificate.internalCert; }
+        }
     }
     public class Face
     {

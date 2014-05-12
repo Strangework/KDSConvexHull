@@ -30,9 +30,45 @@ namespace KineticDT
             return new Cert();
         }
         //Remove an edge and merge the faces. Return the resulting face. Also, remove all appropriate certificates of edges that belong to the same quadrilateral.
-        public Face RemoveInternalEdgeRecursive(HalfEdge e, double time, Face starter = null)
+        public Face RemoveInternalEdgeRecursive(HalfEdge e, double time)
         {
-            //First check anything connected by the current face, then try the other direction
+            if (e.twin.face.timeCreated != time)
+                e.twin.face.timeCreated = time;
+            HalfEdge firstNonBroken = e;
+            HalfEdge current = e;
+            HalfEdge inE = e.twin.prevous;
+            HalfEdge outE = e.twin.next;
+            bool justVisited = false;
+            while (current.CompareTo(firstNonBroken) != 1 || justVisited)
+            {
+                if (current.CertTime == time && current.cer)
+                {
+                    if (current.CompareTo(firstNonBroken) == 1)
+                    {
+                        firstNonBroken = current.next;
+                        justVisited = true;
+                    }
+                    inE.next = current.next;
+                    current.next.prevous = inE;
+                    outE.prevous = inE.prevous;
+                    inE.prevous.next = outE;
+                    if (current.vertex.edge.CompareTo(current) == 1)
+                        current.vertex.edge = outE;
+                    if (current.twin.vertex.edge.CompareTo(current.twin) == 1)
+                        current.twin.vertex.edge = inE.next;
+                }
+                else
+                {
+                    justVisited = false;
+                }
+                current = current.next;
+            }
+            inE.next = e.next;
+            outE.prevous = e.prevous;
+            e = inE.next;
+            outE = e.next;
+            if (e.face.edge.CompareTo(e) == 1)
+                e.face.edge = inE;
             return new Face();
         }
         //Remove an edge with a face going to infinity and merge the faces. Return the resulting face. Also, remove all appropriate certificates of edges that belong to the same quadrilateral.
@@ -79,7 +115,7 @@ namespace KineticDT
                         RemoveBorderCert(curF);
                         curE = CreateCH(curF, time);
                     }
-                    events.EnqeueList(DFSCreateCert(curE, curT));
+                    events.EnqeueList(BFSCreateCert(curE, curT));
                 }
             }
             return curT;
