@@ -16,7 +16,7 @@ namespace KineticDT
         }
 
         #region Helper Methods
-        public double InCircle(Point pa, Point pb, Point pc, Point pd)
+        public double InCircle(Point pa, Point pb, Point pc, Point pd, double time)
         {
             double adx, bdx, cdx, ady, bdy, cdy;
             double bdxcdy, cdxbdy, cdxady, adxcdy, adxbdy, bdxady;
@@ -25,13 +25,12 @@ namespace KineticDT
 
             double permanent;
 
-            // I have 3 points that are on the circumference of the circle
-            adx = pa.x_ - pd.x_;
-            bdx = pb.x_ - pd.x_;
-            cdx = pc.x_ - pd.x_;
-            ady = pa.y_ - pd.y_;
-            bdy = pb.y_ - pd.y_;
-            cdy = pc.y_ - pd.y_;
+            adx = pa.x(time) - pd.x(time);
+            bdx = pb.x(time) - pd.x(time);
+            cdx = pc.x(time) - pd.x(time);
+            ady = pa.y(time) - pd.y(time);
+            bdy = pb.y(time) - pd.y(time);
+            cdy = pc.y(time) - pd.y(time);
 
             bdxcdy = bdx * cdy;
             cdxbdy = cdx * bdy;
@@ -56,6 +55,17 @@ namespace KineticDT
             return det;
         }
 
+        public static double CCW(Point pa, Point pb, Point pc, double time)
+        {
+            double detleft, detright, det;
+
+            detleft = (pa.x(time) - pc.x(time)) * (pb.y(time) - pc.y(time));
+            detright = (pa.y(time) - pc.y(time)) * (pb.x(time) - pc.x(time));
+            det = detleft - detright;
+
+            return det;
+        }
+
         //Returns true if an edge is locally delaunay.
         private bool IsLocalDelaunay(HalfEdge halfEdge, double time)
         {
@@ -67,7 +77,7 @@ namespace KineticDT
                 Vertex v = halfEdge.next.vertex;
                 Vertex p = halfEdge.next.next.vertex;
                 Vertex q = halfEdge.twin.next.next.vertex;
-                if (InCircle(u.point, v.point, p.point, q.point) <= 0)
+                if (InCircle(u.point, v.point, p.point, q.point,  time) <= 0)
                     return true;
                 else
                     return false;
@@ -92,9 +102,10 @@ namespace KineticDT
 
         #region Functions that create DTs
         //This function creates the initial Delaunay triangulation at time t = 0, including the vertex at infinity.
+        //This returns any edge.
         public HalfEdge CreateDTInitial(List<Vertex> initialPoints)
         {
-            List<HalfEdge> outerFaces = new List<HalfEdge>();//ask David
+            List<HalfEdge> outerFaces = new List<HalfEdge>();
             List<Face> triangles = new List<Face>();
             List<HalfEdge> edgesToCheck = new List<HalfEdge>();
 
@@ -153,11 +164,13 @@ namespace KineticDT
 
             HalfEdge onCH = ab.twin;
 
+            //Add all points to the graph one by one.
             while (initialPoints.Count != 0)
             {
                 Vertex curV = initialPoints[initialPoints.Count - 1];
                 initialPoints.RemoveAt(initialPoints.Count - 1);
                 bool foundinface = false;
+                //Faces to add new points to and edges to check later for properly triangulating
                 Tuple<List<Face>, List<HalfEdge>> temp = null;
                 for (int i = 0; i < triangles.Count; ++i)
                 {
@@ -172,6 +185,7 @@ namespace KineticDT
                         i = triangles.Count + 10;
                     }
                 }
+                //The point is outside the current hull
                 if (!foundinface)
                 {
                     HalfEdge leftMost = null;
@@ -189,8 +203,9 @@ namespace KineticDT
                     triangles.AddRange(temp.Item1);
                 }
                 edgesToCheck.AddRange(temp.Item2);
-            }
+            }//Very obviously an O(n^2) loop ):
             HalfEdge curE = null;
+            //Flip edges that need to be flipped
             while (edgesToCheck.Count != 0)
             {
                 curE = edgesToCheck[edgesToCheck.Count - 1];
@@ -258,7 +273,7 @@ namespace KineticDT
             return curE;
         }
 
-        //Triangluate a small by the CH of a DT
+        //Triangluate a small bit of the CH of a DT
         public HalfEdge CreateCH(HalfEdge left, Vertex right, double time)
         {
             List<HalfEdge> newEdges = new List<HalfEdge>();
@@ -271,7 +286,7 @@ namespace KineticDT
                 finished = true;
                 while (curE.twin.vertex.CompareTo(right) != 1)
                 {
-                    if (CCW(left.vertex, left.next.vertex, left.next.next.vertex, time))
+                    if (CCW(left.vertex.point, left.next.vertex.point, left.next.next.vertex.point, time) > 0)
                     {
                         Face newF = new Face(left, time);
                         HalfEdge newE = new HalfEdge(curE.next.twin.prev.vertex);
@@ -319,37 +334,10 @@ namespace KineticDT
                     }
                 }
             }
-            AddInfEdgesToCH(left.next, time, curE.next);
+            AddInfEdgesToPartialCH(left.next, time);
             return left.next;
         }
 
-        //Given a triangulated region and a pointer and a half edge of the convex hull, finish the DCEL. From each point on the CH, there is an edge that goes out to infinity.
-        private void AddInfEdgesToCH(HalfEdge onCH, double time, HalfEdge end = null)
-        {
-            HalfEdge curE = onCH;
-            curE.prev = new HalfEdge(Infinity);
-
-            do
-            {
-                //Before changes are made.
-                HalfEdge temp = curE.next;
-
-                curE.incidentFace = new Face(curE, time);
-                curE.prev.incidentFace = curE.incidentFace;
-
-                curE.next = new HalfEdge(curE.twin.vertex);
-                curE.next.incidentFace = curE.incidentFace;
-                curE.next.prev = curE;
-
-                curE.next.twin = new HalfEdge(Infinity);
-                curE.next.twin.twin = curE.next;
-
-                curE.next.next = curE.prev;
-                curE.prev.prev = curE.next;
-
-                curE = temp;
-            } while (curE != onCH && curE != end);
-        }
         #endregion
 
         #region DCEL Maniupuation
@@ -358,20 +346,30 @@ namespace KineticDT
         //Returns the four edges of the quadrilateral and the new edge made (only one of the half edges)
         public List<HalfEdge> Flip(HalfEdge e)
         {
+            //Disconnect edge
             e.next.prev = e.twin.prev;
             e.twin.prev.next = e.next;
             e.prev.next = e.twin.next;
             e.twin.next.prev = e.prev;
-
+            
+            //Make new edge
             HalfEdge newE = new HalfEdge(e.twin.prev.vertex);
             newE.twin = new HalfEdge(e.prev.vertex);
 
+            //Connect new edge
             newE.twin.twin = newE;
-            newE.prev = e.twin.next; ;
+            newE.prev = e.twin.next;
             newE.next = e.prev;
             newE.twin.next = e.twin.prev;
             newE.twin.prev = e.next;
 
+            //Connect other edges
+            e.prev.prev = newE;
+            e.next.next = newE.twin;
+            e.twin.next.next = newE;
+            e.twin.prev.prev = newE.twin;
+
+            //Update faces
             newE.incidentFace = e.incidentFace;
             newE.next.incidentFace = e.incidentFace;
             newE.next.next.incidentFace = e.incidentFace;
@@ -387,7 +385,7 @@ namespace KineticDT
             ret.Add(newE.next.next);
             ret.Add(newE.twin.next);
             ret.Add(newE.twin.next.next);
-            return ret; ;
+            return ret;
         }
 
         //Given the left most edge of the convex hull that has v on the same side of the half plane created by the edge, attach this vertex to the DCEL.
@@ -400,6 +398,7 @@ namespace KineticDT
             inE.next = leftMost;
             inE.prev = outE;
             outE.next = inE;
+            outE.prev = leftMost;
             inE.twin = new HalfEdge(leftMost.vertex, inE, null, null, leftMost.prev);
             leftMost.prev.next = inE.twin;
             leftMost.prev = inE;
@@ -410,25 +409,33 @@ namespace KineticDT
 
             while (SameSideOfPlane(curE, v, time))
             {
+                //Create two new edges and a face
                 HalfEdge temp = curE.next;
-                outE.twin = new HalfEdge(Infinity);
+                outE.twin = new HalfEdge(v);
                 outE.twin.twin = outE;
-
-                inE = outE;
+                inE = outE.twin;
                 outE = new HalfEdge(curE.twin.vertex);
-
                 tempF = new Face(curE, time);
+                
+                //Connecting two new edges
                 inE.next = curE;
                 curE.prev = inE;
                 curE.next = outE;
                 inE.prev = outE;
                 outE.next = inE;
+                outE.prev = curE;
+                
+                //Add face
+                curE.incidentFace = tempF;
+                inE.incidentFace = tempF;
+                outE.incidentFace = tempF;
+                
                 curE = temp;
 
                 ret.Item1.Add(tempF);
                 ret.Item2.Add(outE);
             }
-            outE.twin = new HalfEdge(Infinity, outE, null, curE, leftSideOfOuterTriangle);
+            outE.twin = new HalfEdge(v, outE, null, curE, leftSideOfOuterTriangle);
             leftSideOfOuterTriangle.next = outE.twin;
             return ret;
         }
@@ -511,6 +518,65 @@ namespace KineticDT
             }
         }
 
+        //Given a triangulated region and a pointer and a half edge of the convex hull, finish the DCEL. From each point on the CH, there is an edge that goes out to infinity.
+        private void AddInfEdgesToCH(HalfEdge onCH, double time)
+        {
+            HalfEdge curE = onCH;
+            curE.prev.next = new HalfEdge(curE.vertex);
+            curE.prev.next.prev = curE.prev;
+            HalfEdge first = curE.prev.next;
+            //Dangling half edge going up
+            HalfEdge temp;
+            do
+            {
+                //Before changes are made.
+                temp = curE.next;
+
+                curE.incidentFace = new Face(curE, time);
+                curE.prev.next.twin = new HalfEdge(Infinity, curE.prev.next, curE.incidentFace, curE);
+                curE.prev = curE.prev.next.twin;
+                curE.next = new HalfEdge(curE.twin.vertex,null, curE.incidentFace, curE.prev, curE);
+                curE.prev.prev = curE.next;
+
+                curE = temp;
+            } while (curE.next.next != first  && curE != end);//Stop if you reached the last edge
+            temp.prev.next.twin = new HalfEdge(Infinity, temp.prev.next, new Face(temp), temp, curE.next.next);
+            first.next = temp.prev.next.twin;
+            temp.prev = temp.prev.next.twin;
+            first.incidentFace = temp.prev.twin.incidentFace;
+            temp.incidentFace = first.incidentFace;
+        }
+
+        //starting edge is the first edge right after a remaining infinite edge
+        private void AddInfEdgesToPartialCH(HalfEdge start, double time)
+        {
+            HalfEdge temp;
+            Face newF;
+            while (start.next.EdgeIs != EdgeType.Inf)
+            {
+                temp = start.next;
+                HalfEdge newE = new HalfEdge(start.twin.vertex);
+                HalfEdge newT = new HalfEdge(Infinity);
+                newF = new Face(start, time);
+                newE.prev = start;
+                newE.next = start.prev;
+                start.prev.prev = newE;
+
+                newE.twin = newT;
+                newT.twin = newE;
+                newT.next = start.next;
+                start.next.prev = newT;
+                start.next = newE;
+                start = temp;
+            }
+            start.next.next = start.prev;
+            start.prev.prev = start.next;
+            newF = new Face(start, time);
+            start.incidentFace = newF;
+            start.prev.incidentFace = newF;
+            start.next.incidentFace = newF;
+        }
+
         //Loop around a face and remove all certificates associated with it.
         public void RemoveBorderCert(Face f)
         {
@@ -531,7 +597,7 @@ namespace KineticDT
             if (initial.CertTime == time || initial.CertTime != -1)
                 return ret;
             ret.Add(CreateCHCert(initial, time));
-            initial.UpdateCert(ret[ret.Count - 1], events);
+            initial.UpdateCert(ret[0], events);
             EdgeType initialET = initial.EdgeIs;
             List<HalfEdge> BFSNextLevel = new List<HalfEdge>();
             //This code is unnecessarily ugly but should work!
@@ -608,14 +674,16 @@ namespace KineticDT
                     events.Dequeue();
                     if (current.CompareTo(firstNonBroken) == 1)
                     {
-                        firstNonBroken = current.prev;//????? Might not work
+                        firstNonBroken = current.next;//????? Might not work
                         justVisited = true;
                     }
                     //If looped around. Here we have an edge going to nowhere!
                     if (current.next.CompareTo(current.twin) == 1)
                     {
+                        if (current.vertex.halfEdge == current)
+                            current.vertex.halfEdge = current.twin.next;
                         current.prev = current.twin.next;
-                        current.twin.next = current.prev;
+                        current.twin.next.prev = current.prev;
                         current = current.twin.next;
                     }
                     else
@@ -648,6 +716,8 @@ namespace KineticDT
         
         //Remove an edge with a face going to infinity and merge the faces. Return the resulting face. Also, remove all appropriate certificates of edges that belong to the same quadrilateral.
         //Recursively removes all edges of neighboring triangles if necessary.
+
+        //The edge this returns is the first edge directly to the right of a remaining infinite edge.
         public Tuple<HalfEdge, Vertex, Face> RemoveInfEdges(HalfEdge e, double time)
         {
             //Note, this code breaks if everything goes on a single line. (This is unlikely and we can prevent the input from ever doing that)
@@ -770,10 +840,6 @@ namespace KineticDT
         }
        
         #region Unfinished Methods
-        public bool CCW(Vertex a, Vertex b, Vertex c, double time)
-        {
-            return true;
-        }
         //Given a half edge, create a certificate for an internal DT
         public Cert CreateInteralCert(HalfEdge e, double time)
         {
