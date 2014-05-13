@@ -13,36 +13,49 @@ namespace KineticDT
 
     public enum EdgeType
     {
-        InfInf, InfInt, Int, Inf
+        InfInf, 
+        InfInt, 
+        Int, 
+        Inf // vertex of half edge on cH connected to infinity
     }
+    
     public class DCEL
     {
     }
-    public class HalfEdge : IComparable
+    public class HalfEdge : IComparable<HalfEdge>
     {
-        public HalfEdge next;
-        public Vertex vertex; //Destination vertex
-        public HalfEdge prevous;
+        public Vertex origin; //Origin vertex
+        
         public HalfEdge twin;
-        public Face face;
+        
+        public Face incidentFace;
+        
+        public HalfEdge next;
+        public HalfEdge prev;
+        
+
         private Cert certificate;
-        public HalfEdge(Vertex source, HalfEdge prev = null, HalfEdge nex = null, HalfEdge tw = null, Face f = null, Cert c = null)
+        
+        public HalfEdge(Vertex origin, HalfEdge twin = null, Face incidentFace = null, HalfEdge next = null, HalfEdge prev = null, Cert certificate = null)
         {
-            vertex = source;
-            prevous = prev;
-            next = nex;
-            twin = tw;
-            face = f;
-            certificate = c;
+            this.origin = origin;
+            this.twin = twin;
+            this.incidentFace = incidentFace;
+            this.prev = prev;
+            this.next = next;
+            this.certificate = certificate;
         }
-        public int CompareTo(object obj)
+        
+        public int CompareTo(HalfEdge halfEdge)
         {
             return 0;
         }
+        
         public void UpdatePriority(double time)
         {
 
         }
+        
         public EdgeType EdgeIs
         {
             get { return EdgeType.InfInf; }
@@ -53,6 +66,7 @@ namespace KineticDT
         {
             get { return 0.0; }
         }
+        
         public void UpdateCert(Cert c)
         {
 
