@@ -137,12 +137,75 @@ namespace KineticDT
             return curE;
         }
 
-        //Returns true if an edge is locally delaunay.
-        private bool IsLocalDelaunay(HalfEdge edge, double time)
+        /// <summary>
+        /// Check if the point pd lies inside the circle passing through pa, pb, and pc. The 
+        /// points pa, pb, and pc must be in counterclockwise order, or the sign of the result 
+        /// will be reversed.
+        /// </summary>
+        /// <param name="pa">Point a.</param>
+        /// <param name="pb">Point b.</param>
+        /// <param name="pc">Point c.</param>
+        /// <param name="pd">Point d.</param>
+        /// <returns>Return a positive value if the point pd lies inside the circle passing through 
+        /// pa, pb, and pc; a negative value if it lies outside; and zero if the four points 
+        /// are cocircular.</returns>
+        public int InCircle(Point pa, Point pb, Point pc, Point pd)
         {
+            int adx, bdx, cdx, ady, bdy, cdy;
+            int bdxcdy, cdxbdy, cdxady, adxcdy, adxbdy, bdxady;
+            int alift, blift, clift;
+            int det;
+
+            int permanent;
+
+            // I have 3 points that are on the circumference of the circle
+            adx = pa.x_ - pd.x_;
+            bdx = pb.x_ - pd.x_;
+            cdx = pc.x_ - pd.x_;
+            ady = pa.y_ - pd.y_;
+            bdy = pb.y_ - pd.y_;
+            cdy = pc.y_ - pd.y_;
+
+            bdxcdy = bdx * cdy;
+            cdxbdy = cdx * bdy;
+            alift = adx * adx + ady * ady;
+
+            cdxady = cdx * ady;
+            adxcdy = adx * cdy;
+            blift = bdx * bdx + bdy * bdy;
+
+            adxbdy = adx * bdy;
+            bdxady = bdx * ady;
+            clift = cdx * cdx + cdy * cdy;
+
+            det = alift * (bdxcdy - cdxbdy)
+                + blift * (cdxady - adxcdy)
+                + clift * (adxbdy - bdxady);
+
+            permanent = (Math.Abs(bdxcdy) + Math.Abs(cdxbdy)) * alift
+                      + (Math.Abs(cdxady) + Math.Abs(adxcdy)) * blift
+                      + (Math.Abs(adxbdy) + Math.Abs(bdxady)) * clift;
+
+            return det;
+        }
+        //Returns true if an edge is locally delaunay.
+        private bool IsLocalDelaunay(HalfEdge halfEdge, double time)
+        {
+            if (halfEdge.edgeType == EdgeType.InfInf)
+                return true;
+            else if (halfEdge.edgeType == EdgeType.Int)
+            {
+                Vertex u = halfEdge.origin;
+                Vertex v = halfEdge.next.origin;
+                Vertex p = halfEdge.next.next.origin;
+                Vertex q = halfEdge.twin.next.next.origin;
+                if (InCircle(u.point, v.point, p.point, q.point) <= 0)
+                    return true;
+                else
+                    return false;
+            }
             return false;
         }
-
         //Flip a half edge along the quadrilateral it is the diagonal of.
         //Returns the four edges of the quadrilateral and the new edge made (only one of the half edges)
         public List<HalfEdge> Flip(HalfEdge e)
@@ -178,6 +241,7 @@ namespace KineticDT
             ret.Add(newE.twin.next.next);
             return ret; ;
         }
+        
         //Given the left most edge of the convex hull that has v on the same side of the half plane created by the edge, attach this vertex to the DCEL.
         //The first of the half edges returned will be the one on the convex hull.
         private Tuple<List<Face>, List<HalfEdge> >AddExternalVertex(HalfEdge leftMost, Vertex v, double time)
