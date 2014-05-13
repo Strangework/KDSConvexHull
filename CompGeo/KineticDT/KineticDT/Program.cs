@@ -14,10 +14,12 @@ namespace KineticDT
         static void Main(string[] args)
         {
         }
+
         //This function creates the initial Delaunay triangulation at time t = 0, including the vertex at infinity.
         public Vertex CreateDTInitial(List<Vertex> initialPoints)
         {
             List<HalfEdge> outerFaces = new List<HalfEdge>();
+            List<Face> Triangles = new List<Face>();
             //Bootstrapping
             Vertex a, b, c;
             HalfEdge ab = new HalfEdge(initialPoints[initialPoints.Count - 1]);
@@ -45,8 +47,41 @@ namespace KineticDT
             bc.face = curF;
             ca.face = curF;
 
+            ab.twin = new HalfEdge(b);
+            bc.twin = new HalfEdge(c);
+            ca.twin = new HalfEdge(a);
+
+            ab.twin.next = ca.twin;
+            ab.twin.prevous = bc.twin;
+            ca.twin.next = bc.twin;
+            ca.twin.prevous = ab.twin;
+            bc.twin.next = ab.twin;
+            bc.twin.prevous = ca.twin;
+
+            outerFaces.Add(ab.twin);
+            outerFaces.Add(bc.twin);
+            outerFaces.Add(ca.twin);
+
             return new Vertex();
         }
+        //returns true if the vertex is within the face
+        private bool InFace(Face f, Vertex v, double time)
+        {
+            return true;
+        }
+        //returns true if the vertex is on the same side of the plane as the line made by the half edge
+        private bool SameSideOfPlane(HalfEdge e, Vertex v, double time)
+        {
+            return true;
+        }
+        //if a vertex is in a face, add the vertex to the decel structure, adding new faces, edges etc.
+        //returns the new faces made.
+        private List<Face> AddVertex(Face f, Vertex v, double time)
+        {
+            return new List<Face>();
+        }
+
+
         //Given a half edge, create a certificate for an internal DT
         public Cert CreateInteralCert(HalfEdge e, double time)
         {
