@@ -15,8 +15,36 @@ namespace KineticDT
         {
         }
         //This function creates the initial Delaunay triangulation at time t = 0, including the vertex at infinity.
-        public Vertex CreateDTInitial(List<Point> initialPoints)
+        public Vertex CreateDTInitial(List<Vertex> initialPoints)
         {
+            List<HalfEdge> outerFaces = new List<HalfEdge>();
+            //Bootstrapping
+            Vertex a, b, c;
+            HalfEdge ab = new HalfEdge(initialPoints[initialPoints.Count - 1]);
+            initialPoints[initialPoints.Count - 1].edge = ab;
+            a = initialPoints[initialPoints.Count - 1];
+            initialPoints.RemoveAt(initialPoints.Count - 1);
+            HalfEdge bc = new HalfEdge(initialPoints[initialPoints.Count - 1]);
+            initialPoints[initialPoints.Count - 1].edge = bc;
+            b = initialPoints[initialPoints.Count - 1];
+            initialPoints.RemoveAt(initialPoints.Count - 1);
+            HalfEdge ca = new HalfEdge(initialPoints[initialPoints.Count - 1]);
+            initialPoints[initialPoints.Count - 1].edge = ca;
+            c = initialPoints[initialPoints.Count - 1];
+            initialPoints.RemoveAt(initialPoints.Count - 1);
+
+            ab.prevous = ca;
+            ab.next = bc;
+            bc.prevous = ab;
+            bc.next = ca;
+            ca.next = ab;
+            ca.prevous = bc;
+
+            Face curF = new Face(ab);
+            ab.face = curF;
+            bc.face = curF;
+            ca.face = curF;
+
             return new Vertex();
         }
         //Given a half edge, create a certificate for an internal DT
@@ -29,54 +57,7 @@ namespace KineticDT
         {
             return new Cert();
         }
-        //Remove an edge and merge the faces. Return the resulting face. Also, remove all appropriate certificates of edges that belong to the same quadrilateral.
-        public Face RemoveInternalEdgeRecursive(HalfEdge e, double time)
-        {
-            if (e.twin.face.timeCreated != time)
-                e.twin.face.timeCreated = time;
-            HalfEdge firstNonBroken = e;
-            HalfEdge current = e;
-            HalfEdge inE = e.twin.prevous;
-            HalfEdge outE = e.twin.next;
-            bool justVisited = false;
-            while (current.CompareTo(firstNonBroken) != 1 || justVisited)
-            {
-                if (current.CertTime == time && current.cer)
-                {
-                    if (current.CompareTo(firstNonBroken) == 1)
-                    {
-                        firstNonBroken = current.next;
-                        justVisited = true;
-                    }
-                    inE.next = current.next;
-                    current.next.prevous = inE;
-                    outE.prevous = inE.prevous;
-                    inE.prevous.next = outE;
-                    if (current.vertex.edge.CompareTo(current) == 1)
-                        current.vertex.edge = outE;
-                    if (current.twin.vertex.edge.CompareTo(current.twin) == 1)
-                        current.twin.vertex.edge = inE.next;
-                }
-                else
-                {
-                    justVisited = false;
-                }
-                current = current.next;
-            }
-            inE.next = e.next;
-            outE.prevous = e.prevous;
-            e = inE.next;
-            outE = e.next;
-            if (e.face.edge.CompareTo(e) == 1)
-                e.face.edge = inE;
-            return new Face();
-        }
-        //Remove an edge with a face going to infinity and merge the faces. Return the resulting face. Also, remove all appropriate certificates of edges that belong to the same quadrilateral.
-        //Recursively removes all edges of neighboring triangles if necessary.
-        public Face RemoveInfEdgeRecursive(HalfEdge e, double time)
-        {
-            return new Face();
-        }
+       
         //Given a new face (in this code it will always have a convex boundary), triangulate it.
         public HalfEdge TriangulateRegion(Face f, double time)
         {
@@ -192,6 +173,139 @@ namespace KineticDT
             for (int i = 0; i < BFSNextLevel.Count; ++i)
                 ret.AddRange(BFSCreateCert(BFSNextLevel[i], time));
             return ret;
+        }
+        //Remove an edge and merge the faces. Return the resulting face. Also, remove all appropriate certificates of edges that belong to the same quadrilateral.
+        public Face RemoveInternalEdges(HalfEdge e, double time)
+        {
+            if (e.CertTime != time)
+                return null;
+            if (e.twin.face.timeCreated != time)
+                e.twin.face.timeCreated = time;
+            HalfEdge firstNonBroken = e;
+            HalfEdge current = e;
+            HalfEdge inE;
+            HalfEdge outE;
+            bool justVisited = false;
+            while (current.CompareTo(firstNonBroken) != 1 || justVisited)
+            {
+                outE = current.twin.next;
+                inE = current.twin.prevous;
+                if (current.CertTime == time && current.EdgeIs == EdgeType.Int)
+                {
+                    current.UpdatePriority(double.MinValue);
+                    events.PopMin();
+                    if (current.CompareTo(firstNonBroken) == 1)
+                    {
+                        firstNonBroken = current.prevous;//????? Might not work
+                        justVisited = true;
+                    }
+                    //If looped around. Here we have an edge going to nowhere!
+                    if (current.next.CompareTo(current.twin) == 1)
+                    {
+                        current.prevous = current.twin.next;
+                        current.twin.next = current.prevous;
+                        current = current.twin.next;
+                    }
+                    else
+                    {
+                        inE.next = current.next;
+                        current.next.prevous = inE;
+                        outE.prevous = current.prevous;
+                        current.prevous.next = outE;
+
+                        inE.next.face = current.twin.face;
+                        outE.prevous.face = current.twin.face;
+
+                        if (current.vertex.edge.CompareTo(current) == 1)
+                            current.vertex.edge = outE;
+                        if (current.twin.vertex.edge.CompareTo(current.twin) == 1)
+                            current.twin.vertex.edge = inE.next;
+                        current = outE;
+                    }
+                    current.UpdatePriority(double.MinValue);
+                    events.PopMin();
+                }
+                else
+                {
+                    justVisited = false;
+                    current = current.next;
+                }
+            }
+            return current.face;
+        }
+        //Remove an edge with a face going to infinity and merge the faces. Return the resulting face. Also, remove all appropriate certificates of edges that belong to the same quadrilateral.
+        //Recursively removes all edges of neighboring triangles if necessary.
+        public Face RemoveInfEdges(HalfEdge e, double time)
+        {
+            //Note, this code breaks if everything goes on a single line. (This is unlikely and we can prevent the input from ever doing that)
+            if (e.CertTime != time)
+                return null;
+            HalfEdge current = e;
+            HalfEdge leftInf;
+            //Follow if's are just to make the code more simple.
+            if (current.EdgeIs == EdgeType.Inf && current.vertex.CompareTo(Infinity) != 1)
+                current = current.twin;
+            else if (current.EdgeIs == EdgeType.InfInt)
+                current = current.twin;
+            bool finished = false;
+            if (current.EdgeIs == EdgeType.Inf)
+                leftInf = current.twin.prevous.prevous;
+            else
+                leftInf = current.prevous;
+            //Go left for simplicity of code
+            while (!finished)
+            {
+                if (current.EdgeIs == EdgeType.Inf && current.twin.prevous.CertTime == time)
+                    current = current.twin.prevous;
+                else if (current.EdgeIs == EdgeType.InfInf && current.prevous.CertTime == time)
+                    current = current.twin.prevous;
+                else
+                    finished = true;
+            }
+            current.face.timeCreated = time;
+            while (current.CertTime != time)
+            {
+                if (current.EdgeIs == EdgeType.Inf)
+                {
+                    current.twin.prevous.next = current.next;
+                    current.next.prevous = current.twin.prevous.next;
+                    current.twin.prevous.prevous.face = current.face;
+                    current.twin.prevous.face = current.face;
+                    current.UpdatePriority(double.MinValue);
+                    events.PopMin();
+                    if (current.vertex.edge.CompareTo(current) == 1)
+                    {
+
+                        current.vertex.edge = current.prevous.twin;
+                    }
+                    current = current.next;
+                }
+                else
+                {
+                    current.prevous.next = current.twin.next;
+                    current.twin.next.prevous = current.prevous;
+                    current.next.prevous = current.twin.prevous;
+                    current.twin.prevous.next = current.next;
+                    current.UpdatePriority(double.MinValue);
+                    events.PopMin();
+                    if (current.vertex.edge.CompareTo(current) == 1)
+                    {
+                        current.vertex.edge = current.twin.next;
+                    }
+                    current = current.next.twin;
+                }
+            }
+            if (current.EdgeIs == EdgeType.Inf)
+            {
+                current.twin.next = leftInf;
+                leftInf.prevous = current.twin.next;
+            }
+            else
+            {
+                current.next.next = leftInf;
+                leftInf.prevous = current.next;
+            }
+            return current.face;
         }
     }
 }

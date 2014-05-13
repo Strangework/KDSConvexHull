@@ -9,10 +9,11 @@ namespace KineticDT
     //InfInf-Edge is on border and half edge is facing outside.
     //Infint- " " facing inside
     //Int-Edge is internal
+    //Inf-Totally infinite edge
 
     public enum EdgeType
     {
-        InfInf, InfInt, Int
+        InfInf, InfInt, Int, Inf
     }
     public class DCEL
     {
@@ -25,6 +26,15 @@ namespace KineticDT
         public HalfEdge twin;
         public Face face;
         private Cert certificate;
+        public HalfEdge(Vertex source, HalfEdge prev = null, HalfEdge nex = null, HalfEdge tw = null, Face f = null, Cert c = null)
+        {
+            vertex = source;
+            prevous = prev;
+            next = nex;
+            twin = tw;
+            face = f;
+            certificate = c;
+        }
         public int CompareTo(object obj)
         {
             return 0;
@@ -47,20 +57,31 @@ namespace KineticDT
         {
 
         }
-        public bool CertType
-        {
-            get { return certificate.internalCert; }
-        }
+
     }
-    public class Face
+    public class Face : IComparable
     {
         public double timeCreated;
         public HalfEdge edge;
+        public int CompareTo(object obj)
+        {
+            return 0;
+        }
+        public Face(HalfEdge e = null, double t = 0)
+        {
+            edge = e;
+            timeCreated = t;
+        }
+        
     }
-    public class Vertex
+    public class Vertex : IComparable
     {
         public HalfEdge edge;
         public Point point;
+        public int CompareTo(object obj)
+        {
+            return 0;
+        }
     }
     public struct Point
     {
