@@ -68,7 +68,7 @@ namespace KineticDT
         
         public void UpdateCert(Cert c)
         {
-
+            
         }
 
     }
@@ -130,7 +130,7 @@ namespace KineticDT
     
     public class PriorityQueue
     {
-        public PQObject Enqeue(Cert c)
+        public PQObject Enqueue(Cert c)
         {
             return new PQObject();
         }
@@ -143,7 +143,9 @@ namespace KineticDT
         {
             return new Cert();
         }
+        
         public Cert Peek();
+        
         public void UpdatePriority(PQObject pqo, double value)
         {
 
