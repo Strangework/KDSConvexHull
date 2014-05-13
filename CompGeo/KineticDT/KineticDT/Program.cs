@@ -80,6 +80,11 @@ namespace KineticDT
         {
             return new List<Face>();
         }
+        //Given a triangulated region and a pointer and a half edge of the convex hull, finish the DCEL. From each point on the CH, there is an edge that goes out to infinity.
+        private void AddInfEdgesToCH(HalfEdge onCH, double time)
+        {
+
+        }
 
 
         //Given a half edge, create a certificate for an internal DT
