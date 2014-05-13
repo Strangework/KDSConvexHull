@@ -34,8 +34,11 @@ namespace KineticDT
         
         public HalfEdge next;
         public HalfEdge prev;
-        
-        public EdgeType edgeType;
+
+        public EdgeType EdgeIs
+        {
+            get { return EdgeType.Inf; }
+        }
 
         private Cert certificate;
         

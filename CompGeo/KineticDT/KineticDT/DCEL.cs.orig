@@ -1,0 +1,161 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace KineticDT
+{
+    //InfInf-Edge is on border and half edge is facing outside.
+    //Infint- " " facing inside
+    //Int-Edge is internal
+    //Inf-Totally infinite edge
+
+    public enum EdgeType
+    {
+        InfInf, InfInt, Int, Inf
+        InfInf, // InFInf are half edges on the CH
+        InfInt, // the twins of InfInf
+        Int, // Internal half edges
+        Inf // Inf are edges connected to the inifinity
+    }
+    public class DCEL
+    {
+    }
+    public class HalfEdge : IComparable
+    {
+        public HalfEdge next;
+        public Vertex vertex; //Origin vertex
+        public HalfEdge prevous;
+        public HalfEdge twin;
+        public Face face;
+        private Cert certificate;
+        public HalfEdge(Vertex source, HalfEdge prev = null, HalfEdge nex = null, HalfEdge tw = null, Face f = null, Cert c = null)
+        {
+            vertex = source;
+            prevous = prev;
+            next = nex;
+            twin = tw;
+            face = f;
+            certificate = c;
+        }
+        public int CompareTo(object obj)
+        {
+            return 0;
+        }
+        public void UpdatePriority(double time)
+        {
+
+        }
+        public EdgeType EdgeIs
+        {
+            get { return EdgeType.InfInf; }
+        }
+
+        //Return -1 for empty Cert
+        public double CertTime
+        {
+            get { return 0.0; }
+        }
+        public void UpdateCert(Cert c)
+        {
+
+        }
+        //returns true of the saved cert is the static, DelaunayEdge cert
+        public bool DelaunayEdgeCert()
+        {
+            return false;
+        }
+
+    }
+    public class Face : IComparable
+    {
+        public double timeCreated;
+        public HalfEdge edge;
+        public int CompareTo(object obj)
+        {
+            return 0;
+        }
+        public Face(HalfEdge e = null, double t = 0)
+        {
+            edge = e;
+            timeCreated = t;
+        }
+        
+    }
+    public class Vertex : IComparable
+    {
+        public HalfEdge edge;
+        public Point point;
+        public int CompareTo(object obj)
+        {
+            return 0;
+        }
+    }
+    public struct Point
+    {
+        private double x_;
+        private double y_;
+        double v_x;
+        double v_y;
+        public double x(double time)
+        {
+            return x_ + v_x * time;
+        }
+        public double y(double time)
+        {
+            return y_ + v_y * time;
+        }
+        //Function of time methods go below
+    }
+    public class PriorityQueue
+    {
+        public PQObject Enqeue(Cert c)
+        {
+            return new PQObject();
+        }
+        public List<PQObject> EnqeueList(List<Cert> certs)
+        {
+            return new List<PQObject>();
+        }
+        public Cert PopMin()
+        {
+            return new Cert();
+        }
+        public Cert Peek();
+        public void UpdatePriority(PQObject pqo, double value)
+        {
+
+        }
+    }
+    public class PQObject
+    {
+
+    }
+    public class Cert : IComparable
+    {
+        private double tc;
+        public double timeCreated
+        {
+            get { return tc; }
+        }
+        public bool internalCert;
+        private PQObject pqo;
+        public HalfEdge edge;
+        public int CompareTo(object obj)
+        {
+            Cert c = obj as Cert;
+            return timeCreated.CompareTo(c);
+        }
+        //DON'T CALL THIS!!!
+        public void UpdatePriority(double time)
+        {
+
+        }
+        public Cert()
+        {
+            tc = -1;
+        }
+        public static Cert DelaunayEdge = new Cert();
+    }
+}

@@ -27,49 +27,49 @@ namespace KineticDT
             Vertex a, b, c;
             
             HalfEdge ab = new HalfEdge(initialPoints[initialPoints.Count - 1]);
-            initialPoints[initialPoints.Count - 1].halfEdge = ab;
+            initialPoints[initialPoints.Count - 1].edge = ab;
             
             a = initialPoints[initialPoints.Count - 1];
             initialPoints.RemoveAt(initialPoints.Count - 1);
             
             HalfEdge bc = new HalfEdge(initialPoints[initialPoints.Count - 1]);
-            initialPoints[initialPoints.Count - 1].halfEdge = bc;
+            initialPoints[initialPoints.Count - 1].edge = bc;
             
             b = initialPoints[initialPoints.Count - 1];
             initialPoints.RemoveAt(initialPoints.Count - 1);
             
             HalfEdge ca = new HalfEdge(initialPoints[initialPoints.Count - 1]);
-            initialPoints[initialPoints.Count - 1].halfEdge = ca;
+            initialPoints[initialPoints.Count - 1].edge = ca;
             
             c = initialPoints[initialPoints.Count - 1];
             initialPoints.RemoveAt(initialPoints.Count - 1);
 
-            ab.prev = ca;
+            ab.prevous = ca;
             ab.next = bc;
             
-            bc.prev = ab;
+            bc.prevous = ab;
             bc.next = ca;
             
             ca.next = ab;
-            ca.prev = bc;
+            ca.prevous = bc;
 
             Face curF = new Face(ab);
-            ab.incidentFace = curF;
-            bc.incidentFace = curF;
-            ca.incidentFace = curF;
+            ab.face = curF;
+            bc.face = curF;
+            ca.face = curF;
 
             ab.twin = new HalfEdge(b);
             bc.twin = new HalfEdge(c);
             ca.twin = new HalfEdge(a);
 
             ab.twin.next = ca.twin;
-            ab.twin.prev = bc.twin;
+            ab.twin.prevous = bc.twin;
             
             ca.twin.next = bc.twin;
-            ca.twin.prev = ab.twin;
+            ca.twin.prevous = ab.twin;
             
             bc.twin.next = ab.twin;
-            bc.twin.prev = ca.twin;
+            bc.twin.prevous = ca.twin;
 
             outerFaces.Add(ab.twin);
             outerFaces.Add(bc.twin);
@@ -108,8 +108,8 @@ namespace KineticDT
                              i = int.MaxValue;
                          }
                      }
-                     while (SameSideOfPlane(leftMost.prev, curV, 0))
-                         leftMost = leftMost.prev;
+                     while (SameSideOfPlane(leftMost.prevous, curV, 0))
+                         leftMost = leftMost.prevous;
                      temp = AddExternalVertex(leftMost, curV, 0);
                      triangles.AddRange(temp.Item1);
                 }
@@ -214,13 +214,13 @@ namespace KineticDT
                     HalfEdge curE;
                     if (curC.internalCert)
                     {
-                        curF = (RemoveInternalEdgeRecursive(curC.halfEdge, curT));
+                        curF = (RemoveInternalEdgeRecursive(curC.edge, curT));
                         RemoveBorderCert(curF);
                         curE = TriangulateRegion(curF, time);
                     }
                     else
                     {
-                        curF = (RemoveInfEdgeRecursive(curC.halfEdge, curT));
+                        curF = (RemoveInfEdgeRecursive(curC.edge, curT));
                         RemoveBorderCert(curF);
                         curE = CreateCH(curF, time);
                     }
@@ -232,7 +232,7 @@ namespace KineticDT
         //Loop around a face and remove all certificates associated with it.
         public void RemoveBorderCert(Face f)
         {
-            HalfEdge start = f.halfEdge;
+            HalfEdge start = f.edge;
             HalfEdge curE = start;
             do
             {
@@ -307,8 +307,8 @@ namespace KineticDT
         {
             if (e.CertTime != time)
                 return null;
-            if (e.twin.incidentFace.timeCreated != time)
-                e.twin.incidentFace.timeCreated = time;
+            if (e.twin.face.timeCreated != time)
+                e.twin.face.timeCreated = time;
             HalfEdge firstNonBroken = e;
             HalfEdge current = e;
             HalfEdge inE;
@@ -317,37 +317,37 @@ namespace KineticDT
             while (current.CompareTo(firstNonBroken) != 1 || justVisited)
             {
                 outE = current.twin.next;
-                inE = current.twin.prev;
+                inE = current.twin.prevous;
                 if (current.CertTime == time && current.EdgeIs == EdgeType.Int)
                 {
                     current.UpdatePriority(double.MinValue);
                     events.PopMin();
                     if (current.CompareTo(firstNonBroken) == 1)
                     {
-                        firstNonBroken = current.prev;//????? Might not work
+                        firstNonBroken = current.prevous;//????? Might not work
                         justVisited = true;
                     }
                     //If looped around. Here we have an edge going to nowhere!
                     if (current.next.CompareTo(current.twin) == 1)
                     {
-                        current.prev = current.twin.next;
-                        current.twin.next = current.prev;
+                        current.prevous = current.twin.next;
+                        current.twin.next = current.prevous;
                         current = current.twin.next;
                     }
                     else
                     {
                         inE.next = current.next;
-                        current.next.prev = inE;
-                        outE.prev = current.prev;
-                        current.prev.next = outE;
+                        current.next.prevous = inE;
+                        outE.prevous = current.prevous;
+                        current.prevous.next = outE;
 
-                        inE.next.incidentFace = current.twin.incidentFace;
-                        outE.prev.incidentFace = current.twin.incidentFace;
+                        inE.next.face = current.twin.face;
+                        outE.prevous.face = current.twin.face;
 
-                        if (current.vertex.halfEdge.CompareTo(current) == 1)
-                            current.vertex.halfEdge = outE;
-                        if (current.twin.vertex.halfEdge.CompareTo(current.twin) == 1)
-                            current.twin.vertex.halfEdge = inE.next;
+                        if (current.vertex.edge.CompareTo(current) == 1)
+                            current.vertex.edge = outE;
+                        if (current.twin.vertex.edge.CompareTo(current.twin) == 1)
+                            current.twin.vertex.edge = inE.next;
                         current = outE;
                     }
                     current.UpdatePriority(double.MinValue);
@@ -359,7 +359,7 @@ namespace KineticDT
                     current = current.next;
                 }
             }
-            return current.incidentFace;
+            return current.face;
         }
         //Remove an edge with a face going to infinity and merge the faces. Return the resulting face. Also, remove all appropriate certificates of edges that belong to the same quadrilateral.
         //Recursively removes all edges of neighboring triangles if necessary.
@@ -377,48 +377,48 @@ namespace KineticDT
                 current = current.twin;
             bool finished = false;
             if (current.EdgeIs == EdgeType.Inf)
-                leftInf = current.twin.prev.prev;
+                leftInf = current.twin.prevous.prevous;
             else
-                leftInf = current.prev;
+                leftInf = current.prevous;
             //Go left for simplicity of code
             while (!finished)
             {
-                if (current.EdgeIs == EdgeType.Inf && current.twin.prev.CertTime == time)
-                    current = current.twin.prev;
-                else if (current.EdgeIs == EdgeType.InfInf && current.prev.CertTime == time)
-                    current = current.twin.prev;
+                if (current.EdgeIs == EdgeType.Inf && current.twin.prevous.CertTime == time)
+                    current = current.twin.prevous;
+                else if (current.EdgeIs == EdgeType.InfInf && current.prevous.CertTime == time)
+                    current = current.twin.prevous;
                 else
                     finished = true;
             }
-            current.incidentFace.timeCreated = time;
+            current.face.timeCreated = time;
             while (current.CertTime != time)
             {
                 if (current.EdgeIs == EdgeType.Inf)
                 {
-                    current.twin.prev.next = current.next;
-                    current.next.prev = current.twin.prev.next;
-                    current.twin.prev.prev.incidentFace = current.incidentFace;
-                    current.twin.prev.incidentFace = current.incidentFace;
+                    current.twin.prevous.next = current.next;
+                    current.next.prevous = current.twin.prevous.next;
+                    current.twin.prevous.prevous.face = current.face;
+                    current.twin.prevous.face = current.face;
                     current.UpdatePriority(double.MinValue);
                     events.PopMin();
-                    if (current.vertex.halfEdge.CompareTo(current) == 1)
+                    if (current.vertex.edge.CompareTo(current) == 1)
                     {
 
-                        current.vertex.halfEdge = current.prev.twin;
+                        current.vertex.edge = current.prevous.twin;
                     }
                     current = current.next;
                 }
                 else
                 {
-                    current.prev.next = current.twin.next;
-                    current.twin.next.prev = current.prev;
-                    current.next.prev = current.twin.prev;
-                    current.twin.prev.next = current.next;
+                    current.prevous.next = current.twin.next;
+                    current.twin.next.prevous = current.prevous;
+                    current.next.prevous = current.twin.prevous;
+                    current.twin.prevous.next = current.next;
                     current.UpdatePriority(double.MinValue);
                     events.PopMin();
-                    if (current.vertex.halfEdge.CompareTo(current) == 1)
+                    if (current.vertex.edge.CompareTo(current) == 1)
                     {
-                        current.vertex.halfEdge = current.twin.next;
+                        current.vertex.edge = current.twin.next;
                     }
                     current = current.next.twin;
                 }
@@ -426,14 +426,14 @@ namespace KineticDT
             if (current.EdgeIs == EdgeType.Inf)
             {
                 current.twin.next = leftInf;
-                leftInf.prev = current.twin.next;
+                leftInf.prevous = current.twin.next;
             }
             else
             {
                 current.next.next = leftInf;
-                leftInf.prev = current.next;
+                leftInf.prevous = current.next;
             }
-            return current.incidentFace;
+            return current.face;
         }
     }
 }
