@@ -62,7 +62,7 @@ namespace KineticDT
 
         }
 
-        //Return -1 for empty Cert
+        //Return -1 for empty Cert or delaunay edge cert!!
         public double CertTime
         {
             get { return 0.0; }
