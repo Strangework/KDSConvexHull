@@ -17,11 +17,12 @@ namespace KineticDT
         }
 
         //This function creates the initial Delaunay triangulation at time t = 0, including the vertex at infinity.
-        public Vertex CreateDTInitial(List<Vertex> initialPoints)
+        public HalfEdge CreateDTInitial(List<Vertex> initialPoints)
         {
             List<HalfEdge> outerFaces = new List<HalfEdge>();//ask David
-            List<Face> Triangles = new List<Face>();
-            
+            List<Face> triangles = new List<Face>();
+            List<HalfEdge> edgesToCheck = new List<HalfEdge>();
+
             //Bootstrapping
             Vertex a, b, c;
             
@@ -73,8 +74,84 @@ namespace KineticDT
             outerFaces.Add(ab.twin);
             outerFaces.Add(bc.twin);
             outerFaces.Add(ca.twin);
+            //Done bootstrapping
 
-            return new Vertex();
+            HalfEdge onCH = ab.twin;
+
+            while (initialPoints.Count != 0)
+            {
+                Vertex curV = initialPoints[initialPoints.Count-1];
+                initialPoints.RemoveAt(initialPoints.Count-1);
+                bool foundinface = false;
+                Tuple<List<Face>, List<HalfEdge> > temp = null;
+                for (int i = 0; i < triangles.Count; ++i)
+                {
+                    if(InFace(triangles[i], curV, 0))
+                    {
+                        foundinface = true;
+                        temp = AddVertex(triangles[i], curV, 0);
+                        onCH = temp.Item2[0];
+                        triangles[i] = temp.Item1[temp.Item1.Count - 1];
+                        temp.Item1.RemoveAt(temp.Item1.Count - 1);
+                        triangles.AddRange(temp.Item1);
+                        i = triangles.Count + 10;
+                    }
+                }
+                if (!foundinface)
+                {
+                    HalfEdge leftMost = null;
+                     for(int i = 0; i < outerFaces.Count; ++i)
+                     {
+                         if (SameSideOfPlane(outerFaces[i], curV, 0))
+                         {
+                             leftMost = outerFaces[i];
+                             i = int.MaxValue;
+                         }
+                     }
+                     while (SameSideOfPlane(leftMost.prevous, curV, 0))
+                         leftMost = leftMost.prevous;
+                     temp = AddExternalVertex(leftMost, curV, 0);
+                     triangles.AddRange(temp.Item1);
+                }
+                edgesToCheck.AddRange(temp.Item2);
+            }
+            HalfEdge curE = null;
+            while (edgesToCheck.Count != 0)
+            {
+                curE = edgesToCheck[edgesToCheck.Count - 1];
+                if (IsLocalDelaunay(curE, 0))
+                    curE.UpdateCert(Cert.DelaunayEdge);
+                else
+                {
+                    List<HalfEdge> tempEs = Flip(curE);
+                    for (int i = 0; i<tempEs.Count; ++i)
+                    {
+                        if (tempEs[i].DelaunayEdgeCert())
+                        {
+                            tempEs[i].UpdateCert(null);
+                            edgesToCheck.Add(tempEs[i]);
+                        }
+                    }
+                }
+            }
+            return curE;
+        }
+        //Returns true if an edge is locally delaunay.
+        private bool IsLocalDelaunay(HalfEdge edge, double time)
+        {
+            return false;
+        }
+        //Flip a half edge along the quadrilateral it is the diagonal of.
+        //Returns the four edges of the quadrilateral and the new edge made
+        public List<HalfEdge> Flip(HalfEdge e)
+        {
+            return null;
+        }
+        //Given the left most edge of the convex hull that has v on the same side of the half plane created by the edge, attach this vertex to the DCEL.
+        //The first of the half edges returned will be the one on the convex hull.
+        private Tuple<List<Face>, List<HalfEdge> >AddExternalVertex(HalfEdge leftMost, Vertex v, double time)
+        {
+            return null;
         }
         //returns true if the vertex is within the face
         private bool InFace(Face f, Vertex v, double time)
@@ -88,16 +165,15 @@ namespace KineticDT
         }
         //if a vertex is in a face, add the vertex to the decel structure, adding new faces, edges etc.
         //returns the new faces made.
-        private List<Face> AddVertex(Face f, Vertex v, double time)
+        private Tuple<List<Face>, List<HalfEdge>> AddVertex(Face f, Vertex v, double time)
         {
-            return new List<Face>();
+            return null;
         }
         //Given a triangulated region and a pointer and a half edge of the convex hull, finish the DCEL. From each point on the CH, there is an edge that goes out to infinity.
         private void AddInfEdgesToCH(HalfEdge onCH, double time)
         {
 
         }
-
 
         //Given a half edge, create a certificate for an internal DT
         public Cert CreateInteralCert(HalfEdge e, double time)

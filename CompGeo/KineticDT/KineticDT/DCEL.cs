@@ -27,7 +27,7 @@ namespace KineticDT
     public class HalfEdge : IComparable<HalfEdge>
     {
         public Vertex origin; //Origin vertex
-        
+        public Vertex vertex; //Origin vertex
         public HalfEdge twin;
         
         public Face incidentFace;
@@ -69,6 +69,11 @@ namespace KineticDT
         public void UpdateCert(Cert c)
         {
             
+        }
+        //returns true of the saved cert is the static, DelaunayEdge cert
+        public bool DelaunayEdgeCert()
+        {
+            return false;
         }
 
     }
@@ -317,5 +322,10 @@ namespace KineticDT
         {
 
         }
+        public Cert()
+        {
+            tc = -1;
+        }
+        public static Cert DelaunayEdge = new Cert();
     }
 }
