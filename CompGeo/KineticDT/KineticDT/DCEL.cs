@@ -344,7 +344,7 @@ namespace KineticDT
         public double timeCreated;
         
         public bool internalCert;
-        
+        public double timeViolated;
         public HalfEdge edge;
 
         public PQKey key;
@@ -361,6 +361,14 @@ namespace KineticDT
         public Cert()
         {
             timeCreated = -1;
+        }
+        public Cert(HalfEdge e, double tc, double tv)
+        {
+            edge = e;
+            timeViolated = tv;
+            timeCreated = tc;
+            internalCert = false;
+            key = null;
         }
         public static Cert DelaunayEdge = new Cert();
     }

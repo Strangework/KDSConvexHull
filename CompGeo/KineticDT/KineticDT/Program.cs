@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using PolyLib;
 
 namespace KineticDT
 {
@@ -568,7 +569,7 @@ namespace KineticDT
                 curE.prev.prev = curE.next;
 
                 curE = temp;
-            } while (curE.next.next != first  && curE != end);//Stop if you reached the last edge
+            } while (curE.next.next != first);//Stop if you reached the last edge
             temp.prev.next.twin = new HalfEdge(Infinity, temp.prev.next, new Face(temp), temp, curE.next.next);
             first.next = temp.prev.next.twin;
             temp.prev = temp.prev.next.twin;
@@ -877,7 +878,29 @@ namespace KineticDT
         //Given a half edge, create a certificate for a CH DT
         public Cert CreateCHCert(HalfEdge e, double time)
         {
-            return new Cert();
+            Point a = e.vertex.point, b = e.twin.vertex.point, c = e.prev.vertex.point, d = e.twin.prev.vertex.point;
+            Polynomial ax = new Polynomial(a.x(time), a.v_x),
+                ay = new Polynomial(a.y(time), a.v_y),
+                bx = new Polynomial(b.x(time), b.v_x),
+                by = new Polynomial(b.y(time), b.v_y),
+                cx = new Polynomial(c.x(time), c.v_x),
+                cy = new Polynomial(c.y(time), c.v_y),
+                dx = new Polynomial(d.x(time), d.v_x),
+                dy = new Polynomial(d.y(time), d.v_y);
+            Polynomial ADx = ax - dy, ADy = ay - dy, BDx = bx - dx,
+                BDy = by - dy, CDx = cx - dx, CDy = cy - dy;
+            Polynomial ADx2 = ax * ax - dx * dx, ADy2 = ay * ay - dy * dy,
+                BDx2 = bx * bx - dx * dx, BDy2 = by * by - dy * dy,
+                CDx2 = cx * cx - dx * dx, CDy2 = cy * cy - dy * dy;
+            Polynomial final = ADx * BDy * CDx2 + ADy * BDx2 * CDx + ADx2 * BDx * CDy + ADx2 * BDx * CDy - ADx2 * BDy * CDx - ADy * BDx * CDx2 - ADx * BDx2 * CDy;
+            double min = -2;
+            Complex[] roots = final.Roots();
+            for (int i = 0; i < roots.Length; ++i)
+            {
+                if (roots[i].Re > time && roots[i].Im == 0)
+                    min = roots[i].Re;
+            }
+            return new Cert(e, time, min);
         }
         #endregion
     }
