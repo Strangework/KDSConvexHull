@@ -136,16 +136,47 @@ namespace KineticDT
             }
             return curE;
         }
+
         //Returns true if an edge is locally delaunay.
         private bool IsLocalDelaunay(HalfEdge edge, double time)
         {
             return false;
         }
+
         //Flip a half edge along the quadrilateral it is the diagonal of.
-        //Returns the four edges of the quadrilateral and the new edge made
+        //Returns the four edges of the quadrilateral and the new edge made (only one of the half edges)
         public List<HalfEdge> Flip(HalfEdge e)
         {
-            return null;
+            e.next.prev = e.twin.prev;
+            e.twin.prev.next = e.next;
+            e.prev.next = e.twin.next;
+            e.twin.next.prev = e.prev;
+
+            HalfEdge newE = new HalfEdge(e.twin.prev.vertex);
+            newE.twin = new HalfEdge(e.prev.vertex);
+            
+            newE.twin.twin = newE;
+            newE.prev = e.twin.next;;
+            newE.next = e.prev;
+            newE.twin.next = e.twin.prev;
+            newE.twin.prev = e.next;
+            
+            newE.incidentFace = e.incidentFace;
+            newE.next.incidentFace = e.incidentFace;
+            newE.next.next.incidentFace = e.incidentFace;
+
+            newE.twin.incidentFace = e.twin.incidentFace;
+            newE.twin.next.incidentFace = e.twin.incidentFace;
+            newE.twin.next.next.incidentFace = e.twin.incidentFace;
+            
+            List<HalfEdge> ret = new List<HalfEdge>();
+            ret.Add(newE);
+            ret.Add(newE.next);
+            ret.Add(newE.next);
+            ret.Add(newE.next.next);
+            ret.Add(newE.twin.next);
+            ret.Add(newE.twin.next.next);
+            return ret; ;
         }
         //Given the left most edge of the convex hull that has v on the same side of the half plane created by the edge, attach this vertex to the DCEL.
         //The first of the half edges returned will be the one on the convex hull.
@@ -161,7 +192,10 @@ namespace KineticDT
         //returns true if the vertex is on the same side of the plane as the line made by the half edge
         private bool SameSideOfPlane(HalfEdge e, Vertex v, double time)
         {
-            return true;
+            double slope = (e.vertex.point.y(time)-e.twin.vertex.point.y(time))/((e.vertex.point.x(time)-e.twin.vertex.point.x(time)));
+            double intercept = e.vertex.point.y(time)-slope * e.vertex.point.x(time);
+            bool above = e.twin.vertex.point.x(time) > e.vertex.point.x(time);
+            return above && v.point.y(time) > v.point.x(time) * slope + intercept;
         }
         //if a vertex is in a face, add the vertex to the decel structure, adding new faces, edges etc.
         //returns the new faces made.
