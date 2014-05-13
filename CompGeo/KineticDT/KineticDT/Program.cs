@@ -13,6 +13,35 @@ namespace KineticDT
         
         static void Main(string[] args)
         {
+            List<Vertex> initialPoints = new List<Vertex>();
+            Vertex v1 = new Vertex();
+            
+            HalfEdge e1 = new HalfEdge(v1);
+            Point p1 = new Point(1, 1);
+
+            v1.halfEdge = e1;
+            v1.point = p1;
+
+            Vertex v2 = new Vertex();
+
+            HalfEdge e2 = new HalfEdge(v2);
+            Point p2 = new Point(3, 2);
+
+            v2.halfEdge = e2;
+            v2.point = p2;
+
+            Vertex v3 = new Vertex();
+
+            HalfEdge e3 = new HalfEdge(v3);
+            Point p3 = new Point(5, -4);
+
+            v3.halfEdge = e3;
+            v3.point = p3;
+
+            initialPoints.Add(v1);
+            initialPoints.Add(v2);
+            initialPoints.Add(v3);
+            HalfEdge startingHalfEdge = CreateDTInitial(initialPoints);
         }
 
         #region Helper Methods
