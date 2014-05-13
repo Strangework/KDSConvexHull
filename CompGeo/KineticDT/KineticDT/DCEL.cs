@@ -43,7 +43,7 @@ namespace KineticDT
         
         public HalfEdge(Vertex origin, HalfEdge twin = null, Face incidentFace = null, HalfEdge next = null, HalfEdge prev = null, Cert certificate = null)
         {
-            this.origin = origin;
+            this.vertex = origin;
             this.twin = twin;
             this.incidentFace = incidentFace;
             this.prev = prev;
@@ -53,29 +53,41 @@ namespace KineticDT
         
         public int CompareTo(HalfEdge rhs)
         {
-            return (this == rhs) 1 : 0;
+            return  (this == rhs) ? 1 : 0;
             
         }
         
-        public void UpdatePriority(double time)
+        public void UpdatePriority(double time, PriorityQueue<Cert> events)
         {
-
+            certificate.timeCreated = time;
+            events.ChangePriority(certificate.key, time);
         }
 
         //Return -1 for empty Cert or delaunay edge cert!!
         public double CertTime
         {
-            get { return 0.0; }
+            get 
+            {
+                if (DelaunayEdgeCert() || certificate == null)
+                    return -1;
+                else
+                    return certificate.timeCreated;
+            }
         }
         
-        public void UpdateCert(Cert c)
+        public void UpdateCert(Cert c, PriorityQueue<Cert> events)
         {
-            
+            if (certificate != null && !DelaunayEdgeCert())
+            {
+                events.ChangePriority(certificate.key, double.MinValue);
+                events.Dequeue();
+            }
+            certificate = c;
         }
         //returns true of the saved cert is the static, DelaunayEdge cert
         public bool DelaunayEdgeCert()
         {
-            return false;
+            return certificate.CompareTo(Cert.DelaunayEdge) == 1;
         }
 
     }
@@ -87,7 +99,7 @@ namespace KineticDT
         
         public int CompareTo(Face rhs)
         {
-            return (this == rhs) 1 : 0; 
+            return (this == rhs)? 1 : 0; 
         }
         
         public Face(HalfEdge halfEdge = null, double timeCreated = 0)
@@ -104,19 +116,32 @@ namespace KineticDT
         
         public int CompareTo(Vertex rhs)
         {
-            return (this == rhs) 1 : 0;
+            return (this == rhs) ? 1 : 0;
         }
         
-        public Vertex(HalfEdge halfEdge = null, Point point = null)
+        public Vertex(HalfEdge h = null)
         {
             
-            this.halfEdge = halfEdge;
-            this.point = point;
+            this.halfEdge = h;
+            this.point = Point.DefPt;
+        }
+        public Vertex(HalfEdge h, Point p)
+        {
+            halfEdge = h;
+            point = p;
         }
     }
     
     public struct Point
     {
+        public Point(double xx = 0, double yy = 0, double vx = 0, double vy = 0)
+        {
+            x_ = xx;
+            y_ = yy;
+            v_x = vx;
+            v_y = vy;
+        }
+        public static Point DefPt = new Point();
         public double x_;
         public double y_;
         
@@ -150,7 +175,7 @@ namespace KineticDT
         public int CompareTo(PQWrapper<T> rhs)
         {
             if (this.priority < rhs.priority) return -1;
-            else if (this.priority > other.priority) return 1;
+            else if (this.priority > rhs.priority) return 1;
             else return 0;
         }
     }
@@ -301,8 +326,17 @@ namespace KineticDT
             }
             return true; // passed all checks
         } // IsConsistent
-        
-        
+
+        public List<PQKey> EnqeueList(List<T> items, List<double> priorities)
+        {
+            List<PQKey> ret = new List<PQKey>();
+            for (int i = 0; i < items.Count; ++i)
+            {
+                ret.Add(Enqueue(items[i], priorities[i]));
+            }
+            return ret;
+        }
+       
     } // PriorityQueue
     
     public class Cert : IComparable<Cert>
@@ -311,18 +345,18 @@ namespace KineticDT
         
         public bool internalCert;
         
-        private PQObject pqo;
         public HalfEdge edge;
-        
-        public int CompareTo(object obj)
+
+        public PQKey key;
+        public int CompareTo(Cert obj)
         {
             Cert c = obj as Cert;
             return timeCreated.CompareTo(c);
         }
-        //DON'T CALL THIS!!!
-        public void UpdatePriority(double time)
+        public int CompareTo(object obj)
         {
-
+            Cert c = obj as Cert;
+            return timeCreated.CompareTo(c);
         }
         public Cert()
         {
