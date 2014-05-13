@@ -182,12 +182,48 @@ namespace KineticDT
         //The first of the half edges returned will be the one on the convex hull.
         private Tuple<List<Face>, List<HalfEdge> >AddExternalVertex(HalfEdge leftMost, Vertex v, double time)
         {
-            return null;
+            Tuple<List<Face>, List<HalfEdge>> ret = new Tuple<List<Face>, List<HalfEdge>>(new List<Face>(), new List<HalfEdge>());
+            HalfEdge outE = new HalfEdge(leftMost.vertex), inE = new HalfEdge(v), curE = leftMost.next, leftSideOfOuterTriangle = null;
+            Face tempF = new Face(leftMost, time);
+            inE.next = leftMost;
+            inE.prev = outE;
+            outE.next = inE;
+            inE.twin = new HalfEdge(leftMost.vertex, inE, null, null, leftMost.prev);
+            leftMost.prev.next = inE.twin;
+            leftMost.prev = inE;
+            leftSideOfOuterTriangle = inE.twin;
+
+            ret.Item1.Add(tempF);
+            ret.Item2.Add(leftSideOfOuterTriangle);
+
+            while (SameSideOfPlane(curE, v, time))
+            {
+                HalfEdge temp = curE.next;
+                outE.twin = new HalfEdge(Infinity);
+                outE.twin.twin = outE;
+
+                inE = outE;
+                outE = new HalfEdge(curE.twin.vertex);
+
+                tempF = new Face(curE, time);
+                inE.next = curE;
+                curE.prev = inE;
+                curE.next = outE;
+                inE.prev = outE;
+                outE.next = inE;
+                curE = temp;
+
+                ret.Item1.Add(tempF);
+                ret.Item2.Add(outE);
+            }
+            outE.twin = new HalfEdge(Infinity, outE, null, curE, leftSideOfOuterTriangle);
+            leftSideOfOuterTriangle.next = outE.twin;
+            return ret;
         }
         //returns true if the vertex is within the face
         private bool InFace(Face f, Vertex v, double time)
         {
-            return true;
+            return (SameSideOfPlane(f.halfEdge, v, time) && SameSideOfPlane(f.halfEdge.next, v, time) && SameSideOfPlane(f.halfEdge.next.next, v, time));
         }
         //returns true if the vertex is on the same side of the plane as the line made by the half edge
         private bool SameSideOfPlane(HalfEdge e, Vertex v, double time)
@@ -206,7 +242,29 @@ namespace KineticDT
         //Given a triangulated region and a pointer and a half edge of the convex hull, finish the DCEL. From each point on the CH, there is an edge that goes out to infinity.
         private void AddInfEdgesToCH(HalfEdge onCH, double time)
         {
+            HalfEdge curE = onCH;
+            curE.prev = new HalfEdge(Infinity);
 
+            do
+            {
+                //Before changes are made.
+                HalfEdge temp = curE.next;
+
+                curE.incidentFace = new Face(curE, time);
+                curE.prev.incidentFace = curE.incidentFace;
+
+                curE.next = new HalfEdge(curE.twin.vertex);
+                curE.next.incidentFace = curE.incidentFace;
+                curE.next.prev = curE;
+
+                curE.next.twin = new HalfEdge(Infinity);
+                curE.next.twin.twin = curE.next;
+
+                curE.next.next = curE.prev;
+                curE.prev.prev = curE.next;
+
+                curE = temp;
+            } while (curE != onCH);
         }
 
         //Given a half edge, create a certificate for an internal DT
