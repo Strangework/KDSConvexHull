@@ -13,15 +13,17 @@ namespace KineticDT
 
     public enum EdgeType
     {
-        InfInf, 
-        InfInt, 
-        Int, 
-        Inf // vertex of half edge on cH connected to infinity
+        InfInf, // InFInf are half edges on the CH
+        InfInt, // the twins of InfInf
+        Int, // Internal half edges
+        Inf // Inf are edges connected to the inifinity
     }
     
     public class DCEL
     {
+    
     }
+    
     public class HalfEdge : IComparable<HalfEdge>
     {
         public Vertex origin; //Origin vertex
@@ -33,6 +35,7 @@ namespace KineticDT
         public HalfEdge next;
         public HalfEdge prev;
         
+        public EdgeType edgeType;
 
         private Cert certificate;
         
@@ -46,19 +49,15 @@ namespace KineticDT
             this.certificate = certificate;
         }
         
-        public int CompareTo(HalfEdge halfEdge)
+        public int CompareTo(HalfEdge rhs)
         {
-            return 0;
+            return (this == rhs) 1 : 0;
+            
         }
         
         public void UpdatePriority(double time)
         {
 
-        }
-        
-        public EdgeType EdgeIs
-        {
-            get { return EdgeType.InfInf; }
         }
 
         //Return -1 for empty Cert
@@ -73,52 +72,69 @@ namespace KineticDT
         }
 
     }
-    public class Face : IComparable
+    
+    public class Face : IComparable<Face>
     {
+        public HalfEdge halfEdge;
         public double timeCreated;
-        public HalfEdge edge;
-        public int CompareTo(object obj)
+        
+        public int CompareTo(Face rhs)
         {
-            return 0;
-        }
-        public Face(HalfEdge e = null, double t = 0)
-        {
-            edge = e;
-            timeCreated = t;
+            return (this == rhs) 1 : 0; 
         }
         
-    }
-    public class Vertex : IComparable
-    {
-        public HalfEdge edge;
-        public Point point;
-        public int CompareTo(object obj)
+        public Face(HalfEdge halfEdge = null, double timeCreated = 0)
         {
-            return 0;
+            this.halfEdge = halfEdge;
+            this.timeCreated = timeCreated;
         }
     }
+    
+    public class Vertex : IComparable<Vertex>
+    {
+        public HalfEdge halfEdge;
+        public Point point;
+        
+        public int CompareTo(Vertex rhs)
+        {
+            return (this == rhs) 1 : 0;
+        }
+        
+        public Vertex(HalfEdge halfEdge = null, Point point = null)
+        {
+            
+            this.halfEdge = halfEdge;
+            this.point = point;
+        }
+    }
+    
     public struct Point
     {
-        private double x_;
-        private double y_;
-        double v_x;
-        double v_y;
+        public double x_;
+        public double y_;
+        
+        public double v_x;
+        public double v_y;
+        
         public double x(double time)
         {
             return x_ + v_x * time;
         }
+        
         public double y(double time)
         {
             return y_ + v_y * time;
         }
         //Function of time methods go below
     }
+    
     public class PriorityQueue
     {
         public PQObject Enqeue(Cert c)
         {
             return new PQObject();
         }
+        
         public List<PQObject> EnqeueList(List<Cert> certs)
         {
             return new List<PQObject>();
@@ -133,20 +149,21 @@ namespace KineticDT
 
         }
     }
+    
     public class PQObject
     {
 
     }
-    public class Cert : IComparable
+    
+    public class Cert : IComparable<Cert>
     {
-        private double tc;
-        public double timeCreated
-        {
-            get { return tc; }
-        }
+        public double timeCreated;
+        
         public bool internalCert;
+        
         private PQObject pqo;
         public HalfEdge edge;
+        
         public int CompareTo(object obj)
         {
             Cert c = obj as Cert;
