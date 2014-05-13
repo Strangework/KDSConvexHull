@@ -299,9 +299,80 @@ namespace KineticDT
         }
         //if a vertex is in a face, add the vertex to the decel structure, adding new faces, edges etc.
         //returns the new faces made.
+        //if a vertex is in a face, add the vertex to the decel structure, adding new faces, edges etc.
+        //returns the new faces made.
         private Tuple<List<Face>, List<HalfEdge>> AddVertex(Face f, Vertex v, double time)
         {
-            return null;
+            if (InFace(f, v, time))
+            {
+                Vertex a = f.halfEdge.vertex;
+                Vertex b = f.halfEdge.next.vertex;
+                Vertex c = f.halfEdge.next.next.vertex;
+
+                HalfEdge halfEdgeVToA = new HalfEdge(v);
+                HalfEdge halfEdgeVToB = new HalfEdge(v);
+                HalfEdge halfEdgeVToC = new HalfEdge(v);
+
+                HalfEdge halfEdgeAToV = new HalfEdge(a);
+                HalfEdge halfEdgeBToV = new HalfEdge(b);
+                HalfEdge halfEdgeCToV = new HalfEdge(c);
+
+                halfEdgeVToA.twin = halfEdgeAToV;
+                halfEdgeVToA.next = a.halfEdge;
+                halfEdgeVToA.prev = halfEdgeBToV;
+
+                halfEdgeVToB.twin = halfEdgeBToV;
+                halfEdgeVToB.next = b.halfEdge;
+                halfEdgeVToB.prev = halfEdgeCToV;
+
+                halfEdgeVToC.twin = halfEdgeCToV;
+                halfEdgeVToC.next = c.halfEdge;
+                halfEdgeVToC.prev = halfEdgeAToV;
+
+                halfEdgeAToV.twin = halfEdgeVToA;
+                halfEdgeAToV.next = halfEdgeVToC;
+                halfEdgeAToV.prev = c.halfEdge;
+
+                halfEdgeBToV.twin = halfEdgeVToB;
+                halfEdgeBToV.next = halfEdgeVToA;
+                halfEdgeBToV.prev = a.halfEdge;
+
+                halfEdgeCToV.twin = halfEdgeVToC;
+                halfEdgeCToV.next = halfEdgeVToB;
+                halfEdgeCToV.prev = b.halfEdge;
+
+                Face fa = new Face(halfEdgeVToA);
+                Face fb = new Face(halfEdgeVToB);
+                Face fc = new Face(halfEdgeVToC);
+
+                halfEdgeVToA.incidentFace = fa;
+                halfEdgeVToA.twin.incidentFace = fc;
+
+                halfEdgeVToB.incidentFace = fb;
+                halfEdgeVToB.twin.incidentFace = fa;
+
+                halfEdgeVToC.incidentFace = fc;
+                halfEdgeVToC.twin.incidentFace = fb;
+
+                List<Face> faces = new List<Face>();
+                faces.Add(fa);
+                faces.Add(fb);
+                faces.Add(fc);
+
+                List<HalfEdge> halfEdges = new List<HalfEdge>();
+                halfEdges.Add(halfEdgeAToV);
+                halfEdges.Add(halfEdgeBToV);
+                halfEdges.Add(halfEdgeCToV);
+                halfEdges.Add(halfEdgeVToA);
+                halfEdges.Add(halfEdgeVToB);
+                halfEdges.Add(halfEdgeVToC);
+                Tuple<List<Face>, List<HalfEdge>> tuple = new Tuple<List<Face>, List<HalfEdge>>(faces, halfEdges);
+                return tuple;
+            }
+            else
+            {
+                return null;
+            }
         }
         //Given a triangulated region and a pointer and a half edge of the convex hull, finish the DCEL. From each point on the CH, there is an edge that goes out to infinity.
         private void AddInfEdgesToCH(HalfEdge onCH, double time)
