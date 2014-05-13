@@ -11,6 +11,7 @@ namespace KineticDT
     {
         public Vertex Infinity;
         public PriorityQueue events;
+        
         static void Main(string[] args)
         {
         }
@@ -18,27 +19,36 @@ namespace KineticDT
         //This function creates the initial Delaunay triangulation at time t = 0, including the vertex at infinity.
         public Vertex CreateDTInitial(List<Vertex> initialPoints)
         {
-            List<HalfEdge> outerFaces = new List<HalfEdge>();
+            List<HalfEdge> outerFaces = new List<HalfEdge>();//ask David
             List<Face> Triangles = new List<Face>();
+            
             //Bootstrapping
             Vertex a, b, c;
+            
             HalfEdge ab = new HalfEdge(initialPoints[initialPoints.Count - 1]);
             initialPoints[initialPoints.Count - 1].edge = ab;
+            
             a = initialPoints[initialPoints.Count - 1];
             initialPoints.RemoveAt(initialPoints.Count - 1);
+            
             HalfEdge bc = new HalfEdge(initialPoints[initialPoints.Count - 1]);
             initialPoints[initialPoints.Count - 1].edge = bc;
+            
             b = initialPoints[initialPoints.Count - 1];
             initialPoints.RemoveAt(initialPoints.Count - 1);
+            
             HalfEdge ca = new HalfEdge(initialPoints[initialPoints.Count - 1]);
             initialPoints[initialPoints.Count - 1].edge = ca;
+            
             c = initialPoints[initialPoints.Count - 1];
             initialPoints.RemoveAt(initialPoints.Count - 1);
 
             ab.prevous = ca;
             ab.next = bc;
+            
             bc.prevous = ab;
             bc.next = ca;
+            
             ca.next = ab;
             ca.prevous = bc;
 
@@ -53,8 +63,10 @@ namespace KineticDT
 
             ab.twin.next = ca.twin;
             ab.twin.prevous = bc.twin;
+            
             ca.twin.next = bc.twin;
             ca.twin.prevous = ab.twin;
+            
             bc.twin.next = ab.twin;
             bc.twin.prevous = ca.twin;
 
